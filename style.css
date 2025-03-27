@@ -1,0 +1,44 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 10px;
+}
+
+.card-title {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+#predictionText,
+#resultText {
+    margin: 20px 0;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.long {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.short {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.profit {
+    color: #28a745;
+}
+
+.loss {
+    color: #dc3545;
+}
