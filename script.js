@@ -15,6 +15,20 @@ function generatePrediction() {
     return Math.random() < 0.5 ? 'LONG' : 'SHORT';
 }
 
+// Funzione per verificare se è necessario generare una nuova predizione
+function shouldGenerateNewPrediction() {
+    const lastUpdate = localStorage.getItem('lastUpdate');
+    if (!lastUpdate) return true;
+
+    const lastUpdateDate = new Date(parseInt(lastUpdate));
+    const now = new Date();
+
+    // Verifica se è un giorno diverso
+    return lastUpdateDate.getDate() !== now.getDate() ||
+        lastUpdateDate.getMonth() !== now.getMonth() ||
+        lastUpdateDate.getFullYear() !== now.getFullYear();
+}
+
 // Funzione per salvare una predizione nel localStorage
 function savePrediction(prediction, price) {
     const today = new Date().toISOString().split('T')[0];
@@ -34,6 +48,7 @@ function savePrediction(prediction, price) {
 
     predictions.push(newPrediction);
     localStorage.setItem('predictions', JSON.stringify(predictions));
+    localStorage.setItem('lastUpdate', newPrediction.timestamp.toString());
     return newPrediction;
 }
 
@@ -61,7 +76,7 @@ function updateTimer() {
     const timeUntilUpdate = getTimeUntilNextUpdate();
     const timerElement = document.getElementById('nextUpdate');
     if (timerElement) {
-        timerElement.textContent = `Prossimo aggiornamento tra: ${timeUntilUpdate.hours}h ${timeUntilUpdate.minutes}m ${timeUntilUpdate.seconds}s`;
+        timerElement.textContent = `Prossimo aggiornamento alle 00:00 (${timeUntilUpdate.hours}h ${timeUntilUpdate.minutes}m ${timeUntilUpdate.seconds}s)`;
     }
 }
 
@@ -112,20 +127,35 @@ async function initializeApp() {
         return;
     }
 
-    // Genera e mostra la predizione di oggi
-    const todayPrediction = generatePrediction();
-    const predictionElement = document.getElementById('predictionText');
-    predictionElement.textContent = todayPrediction;
-    predictionElement.className = `h3 ${todayPrediction.toLowerCase()}`;
+    // Verifica se è necessario generare una nuova predizione
+    if (shouldGenerateNewPrediction()) {
+        // Genera e mostra la predizione di oggi
+        const todayPrediction = generatePrediction();
+        const predictionElement = document.getElementById('predictionText');
+        predictionElement.textContent = todayPrediction;
+        predictionElement.className = `h3 ${todayPrediction.toLowerCase()}`;
 
-    // Salva la predizione
-    const savedPrediction = savePrediction(todayPrediction, currentPrice);
+        // Salva la predizione
+        const savedPrediction = savePrediction(todayPrediction, currentPrice);
 
-    // Aggiungi il timestamp della predizione
-    const timestampElement = document.createElement('p');
-    timestampElement.className = 'text-muted small';
-    timestampElement.textContent = `Generata il ${new Date(savedPrediction.timestamp).toLocaleString('it-IT')}`;
-    predictionElement.parentNode.appendChild(timestampElement);
+        // Aggiungi il timestamp della predizione
+        const timestampElement = document.createElement('p');
+        timestampElement.className = 'text-muted small';
+        timestampElement.textContent = `Generata il ${new Date(savedPrediction.timestamp).toLocaleString('it-IT')}`;
+        predictionElement.parentNode.appendChild(timestampElement);
+    } else {
+        // Mostra la predizione esistente
+        const predictions = JSON.parse(localStorage.getItem('predictions') || '[]');
+        const todayPrediction = predictions[predictions.length - 1];
+        const predictionElement = document.getElementById('predictionText');
+        predictionElement.textContent = todayPrediction.prediction;
+        predictionElement.className = `h3 ${todayPrediction.prediction.toLowerCase()}`;
+
+        const timestampElement = document.createElement('p');
+        timestampElement.className = 'text-muted small';
+        timestampElement.textContent = `Generata il ${new Date(todayPrediction.timestamp).toLocaleString('it-IT')}`;
+        predictionElement.parentNode.appendChild(timestampElement);
+    }
 
     // Calcola e mostra il risultato di ieri
     const yesterdayResult = await calculateYesterdayResult();
