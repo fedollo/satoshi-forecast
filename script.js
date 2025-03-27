@@ -22,16 +22,47 @@ function savePrediction(prediction, price) {
 
     // Verifica se esiste già una predizione per oggi
     if (predictions.length > 0 && predictions[predictions.length - 1].date === today) {
-        return;
+        return predictions[predictions.length - 1];
     }
 
-    predictions.push({
+    const newPrediction = {
         date: today,
         prediction: prediction,
-        price: price
-    });
+        price: price,
+        timestamp: new Date().getTime()
+    };
 
+    predictions.push(newPrediction);
     localStorage.setItem('predictions', JSON.stringify(predictions));
+    return newPrediction;
+}
+
+// Funzione per calcolare il tempo rimanente fino al prossimo aggiornamento
+function getTimeUntilNextUpdate() {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
+    const diff = tomorrow - now;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    return {
+        hours,
+        minutes,
+        seconds
+    };
+}
+
+// Funzione per aggiornare il timer
+function updateTimer() {
+    const timeUntilUpdate = getTimeUntilNextUpdate();
+    const timerElement = document.getElementById('nextUpdate');
+    if (timerElement) {
+        timerElement.textContent = `Prossimo aggiornamento tra: ${timeUntilUpdate.hours}h ${timeUntilUpdate.minutes}m ${timeUntilUpdate.seconds}s`;
+    }
 }
 
 // Funzione per calcolare il risultato di ieri
@@ -88,21 +119,34 @@ async function initializeApp() {
     predictionElement.className = `h3 ${todayPrediction.toLowerCase()}`;
 
     // Salva la predizione
-    savePrediction(todayPrediction, currentPrice);
+    const savedPrediction = savePrediction(todayPrediction, currentPrice);
+
+    // Aggiungi il timestamp della predizione
+    const timestampElement = document.createElement('p');
+    timestampElement.className = 'text-muted small';
+    timestampElement.textContent = `Generata il ${new Date(savedPrediction.timestamp).toLocaleString('it-IT')}`;
+    predictionElement.parentNode.appendChild(timestampElement);
 
     // Calcola e mostra il risultato di ieri
     const yesterdayResult = await calculateYesterdayResult();
-    const resultElement = document.getElementById('resultText');
+    const resultElement = document.getElementById('yesterdayResult');
 
     if (yesterdayResult) {
-        resultElement.textContent = `${yesterdayResult.prediction} → ${yesterdayResult.result} (${yesterdayResult.percentage}%)`;
-        resultElement.className = `h3 ${yesterdayResult.profit ? 'profit' : 'loss'}`;
+        resultElement.innerHTML = `
+            <p class="h3 ${yesterdayResult.profit ? 'profit' : 'loss'}">
+                ${yesterdayResult.prediction} → ${yesterdayResult.result} (${yesterdayResult.percentage}%)
+            </p>
+        `;
     } else {
-        resultElement.textContent = 'Nessun risultato disponibile';
+        resultElement.innerHTML = '<p class="h3">Nessun risultato disponibile</p>';
     }
 
     // Aggiorna la tabella dello storico
     updateHistoryTable();
+
+    // Aggiorna il timer ogni secondo
+    updateTimer();
+    setInterval(updateTimer, 1000);
 }
 
 // Inizializza l'applicazione quando la pagina viene caricata
